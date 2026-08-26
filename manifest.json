@@ -1,0 +1,11 @@
+{
+  "name": "hf-codex",
+  "description": "Launch Codex CLI with Hugging Face Inference Providers",
+  "entrypoint": "hf-codex",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "requires": ["bash", "curl", "jq", "codex"],
+  "env": {
+    "HF_TOKEN": "Hugging Face user token used to authenticate with Inference Providers"
+  }
+}
