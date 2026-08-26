@@ -247,4 +247,24 @@ if [[ -n "${HF_CODEX_DRY_RUN:-}" ]]; then
   exit 0
 fi
 
-exec codex -c "model=\"${MODEL_STRING}\"" ${CODEX_ARGS[@]+"${CODEX_ARGS[@]}"}
+# Run codex with stderr captured to a log so we can translate known router
+# failures into actionable messages. stderr is replayed after exit (codex's
+# TUI lives on the tty/stdout, so buffering stderr doesn't disturb it).
+ERROR_LOG="$(mktemp -t hf-codex-stderr)"
+trap 'rm -f "$ERROR_LOG"' EXIT
+
+status=0
+codex -c "model=\"${MODEL_STRING}\"" ${CODEX_ARGS[@]+"${CODEX_ARGS[@]}"} \
+  2> "$ERROR_LOG" || status=$?
+cat "$ERROR_LOG" >&2
+
+if [[ $status -ne 0 ]] && grep -q '400 status code' "$ERROR_LOG"; then
+  cat >&2 <<EOF
+
+Error: the selected model '${MODEL_STRING}' is not compatible with hf codex
+at this time (its provider rejected Codex's Responses API request).
+Try another model or a different provider suffix (e.g. ':groq' instead of
+':novita'), or pick 'auto' at the provider prompt.
+EOF
+fi
+exit $status
